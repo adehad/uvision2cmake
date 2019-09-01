@@ -364,7 +364,7 @@ class UVisionProject:
                                 pack_id=text(tco, "PackID"),
                                 pack_url=text(tco, "PackURL"),
                                 cpu=text(tco, "Cpu"),
-                                device_id=int(text(tco, "DeviceId")),
+                                device_id=text(tco, "DeviceId"),
                                 register_file=text(tco, "RegisterFile")
                             ) for tco in to.xpath("TargetCommonOption")
                         ),
@@ -411,16 +411,16 @@ class UVisionProject:
                         asm=next(
                             Target.Build.Asm(
                                 misc=[
-                                    mc.strip() for mc in text(to_taa_a, "VariousControls/MiscControls").split(",")
+                                    mc.strip() for mc in (text(to_taa_a, "VariousControls/MiscControls") or "").split(",")
                                 ],
                                 defines=[
-                                    mc.strip() for mc in text(to_taa_a, "VariousControls/Define").split(" ")
+                                    mc.strip() for mc in (text(to_taa_a, "VariousControls/Define") or "").split(" ")
                                 ],
                                 undefines=[
                                     mc.strip() for mc in (text(to_taa_a, "VariousControls/Undefine") or "").split(" ")
                                 ],
                                 include_paths=[
-                                    mc.strip() for mc in text(to_taa_a, "VariousControls/IncludePath").split(";")
+                                    mc.strip() for mc in (text(to_taa_a, "VariousControls/IncludePath") or "").split(";")
                                 ]
                             ) for to_taa_a in to_taa.xpath("Aads")
                         ),

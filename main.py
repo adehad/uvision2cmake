@@ -801,28 +801,36 @@ class CMake:
                                value_prefix: str = "") -> str:
             s = (f"# {comment}\n"
                  f"set({var_name}")
+            value_str = ''
             for value in value_iterator:
                 if value.comment is not None:
-                    s += f"\n\t# {value.comment}"
-                s += f"\n\t{value_prefix}{value.value}"
-            return s + "\n)"
+                    value_str += f"\n\t# {value.comment}"
+                value_str += f"\n\t{value_prefix}{value.value}"
+            if len(value_str) is not 0:
+                return s + value_str + "\n)"
+            else:
+                return None
 
         for section_comment, section_var_prefix, section_props, val_prefix in prop_sets:
             ss_str = []
             for prop_set_comment, var_suffix, filter_fun in sub_prop_sets:
-                ss_str.append(_add_section_files(
+                section_files = _add_section_files(
                     comment=f"{prop_set_comment} {section_comment}",
                     var_name=f"{section_var_prefix}_{var_suffix}",
                     value_iterator=filter(filter_fun, section_props),
                     value_prefix=val_prefix
-                ))
+                )
+                if section_files is not None:
+                    ss_str.append(section_files)
             ret_str.append("\n\n".join(ss_str))
 
-        ret_str.append(_add_section_files(
+        other_files = _add_section_files(
             comment="Other files",
             var_name="OTHER_FILES",
             value_iterator=self.other_file_paths
-        ))
+        )
+        if other_files is not None:
+            ret_str.append(other_files)
 
         return "\n\n\n".join(ret_str)
 

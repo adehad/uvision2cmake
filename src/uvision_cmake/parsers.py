@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import enum
 import operator
 import os
@@ -5,18 +7,7 @@ import warnings
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import (
-    Callable,
-    Collection,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-)
+from typing import Callable, Collection, Iterable, Iterator
 
 from lxml import etree
 
@@ -106,7 +97,7 @@ class Target:
                 size: int
 
             cpu_type: str
-            memories: List[Memory]
+            memories: list[Memory]
 
         @dataclass
         class C:
@@ -114,23 +105,23 @@ class Target:
             strict: bool
             c99: bool
             gnu: bool
-            misc: List[str]
-            defines: List[str]
-            undefines: List[str]
-            include_paths: List[str]
+            misc: list[str]
+            defines: list[str]
+            undefines: list[str]
+            include_paths: list[str]
 
         @dataclass
         class Asm:
-            misc: List[str]
-            defines: List[str]
-            undefines: List[str]
-            include_paths: List[str]
+            misc: list[str]
+            defines: list[str]
+            undefines: list[str]
+            include_paths: list[str]
 
         @dataclass
         class Linker:
             text_address_range: int
             data_address_range: int
-            misc: List[str]
+            misc: list[str]
 
         misc: Misc
         c: C
@@ -150,14 +141,14 @@ class Target:
     @dataclass
     class Group:
         name: str
-        files: List["Target.File"]
+        files: list[Target.File]
 
     name: str
     toolset: Toolset
     compiler: Compiler
     options: Options
     build: Build
-    groups: List[Group]
+    groups: list[Group]
 
 
 @dataclass
@@ -169,7 +160,7 @@ class RTE:
             FIXED = "fixed"
 
         name: str
-        version_match_mode: Optional[VersionMatchMode]
+        version_match_mode: VersionMatchMode | None
 
     @dataclass
     class Package:
@@ -177,7 +168,7 @@ class RTE:
         url: str
         vendor: str
         version: str
-        target_infos: List["RTE.TargetInfo"]
+        target_infos: list[RTE.TargetInfo]
 
     @dataclass
     class Component:
@@ -186,8 +177,8 @@ class RTE:
         vendor: str
         version: str
         condition: str
-        package: "RTE.Package"
-        target_infos: List["RTE.TargetInfo"]
+        package: RTE.Package
+        target_infos: list[RTE.TargetInfo]
 
     @dataclass
     class File:
@@ -201,17 +192,17 @@ class RTE:
 
         attr: Attribute
         category: Category
-        condition: Optional[str]
+        condition: str | None
         name: str
         version: str
         instance: str
-        component: "RTE.Component"
-        package: "RTE.Package"
-        target_infos: List["RTE.TargetInfo"]
+        component: RTE.Component
+        package: RTE.Package
+        target_infos: list[RTE.TargetInfo]
 
-    packages: List[Package]
-    components: List[Component]
-    files: List[File]
+    packages: list[Package]
+    components: list[Component]
+    files: list[File]
 
 
 # endregion XML data structures for Project File
@@ -255,7 +246,7 @@ class Group:
     cb_sel: UnknownBool
     rte_flag: bool
     """Whether this group is part of/managed by the Keil MDK Run-Time Environment (RTE) and therefore read-only."""
-    files: List[File]
+    files: list[File]
     """List of files in this group."""
 
     _project_group: Target.Group = None
@@ -268,7 +259,7 @@ class Group:
 # region XML parsing helper functions
 
 
-def text(element: etree.ElementBase, name: str, is_attribute: bool = False, nullable: bool = False) -> Optional[str]:
+def text(element: etree.ElementBase, name: str, is_attribute: bool = False, nullable: bool = False) -> str | None:
     if is_attribute:
         if nullable:
             return element.attrib.get(name)
@@ -287,7 +278,7 @@ def text(element: etree.ElementBase, name: str, is_attribute: bool = False, null
 
 def strict_bool(
     element: etree.ElementBase, name: str, nullable: bool = False, *, false_value: str = "0", true_value: str = "1"
-) -> Optional[bool]:
+) -> bool | None:
     value = text(element, name, nullable=nullable)
     if value == false_value:
         return False
@@ -314,17 +305,17 @@ class UVisionProject:
     project_options_path: str
 
     # region Project File
-    targets: List[Target]
+    targets: list[Target]
     # endregion Project File
 
     # region Project Options
-    groups: List[Group]
+    groups: list[Group]
     """Groups of files, as shown in the Project Window file browser."""
 
     # endregion Project Options
 
     @classmethod
-    def new(cls, project_file_path: str) -> "UVisionProject":
+    def new(cls, project_file_path: str) -> UVisionProject:
         fp_base = os.path.splitext(project_file_path)[0]
         project_file_path = fp_base + ".uvprojx"
         project_options_path = fp_base + ".uvoptx"
@@ -569,14 +560,14 @@ class UVisionProject:
         if xopt.tag != "ProjectOpt":
             raise ValueError("Invalid uVision Project Options XML file")
 
-        groups: List[Group] = []
+        groups: list[Group] = []
         for group in xopt.xpath("Group"):
             group_name = text(group, "GroupName")
             # Find this group in the Project File
             xproj_group = next(g for g in next(iter(targets)).groups if (g.name == group_name))
 
             # Find all files in this group and also in the Project File
-            files: List[File] = []
+            files: list[File] = []
             for file in group.xpath("File"):
                 file_type = FileType(int(text(file, "FileType")))
                 file_name = text(file, "FilenameWithoutPath")
@@ -665,7 +656,7 @@ class UVisionProject:
             groups=groups,
         )
 
-    def source_files(self) -> Iterator[Tuple[File, Optional[Language], Optional[str]]]:
+    def source_files(self) -> Iterator[tuple[File, Language | None, str | None]]:
         """
         Get all files grouped by the file type with group names as a comments.
         """
@@ -677,7 +668,7 @@ class UVisionProject:
                 comment = "RTE" + comment
 
             # Group files by type and add one comment for every file type as they are in the separate sections.
-            files: Dict[Union[Language, None], List[File]] = defaultdict(list)
+            files: dict[Language | None, list[File]] = defaultdict(list)
 
             for file in group.files:
                 if file.type == FileType.ASM_SOURCE:
@@ -703,13 +694,13 @@ class CMake:
     class String:
         value: str
         """The actual string value."""
-        languages: Set[Language]
+        languages: set[Language]
         """Set of all build configs in which this value is present."""
         common: bool = False
-        comment: Optional[str] = None
+        comment: str | None = None
         """Comment which will be added to the line before"""
 
-        def __eq__(self, o: "CMake.String") -> bool:
+        def __eq__(self, o: CMake.String) -> bool:
             if isinstance(o, type(self)):
                 return self.value == o.value
             elif isinstance(o, str):
@@ -717,14 +708,14 @@ class CMake:
             return NotImplemented
 
     def __init__(self) -> None:
-        self.include_paths: List[CMake.String] = []
-        self.defines: List[CMake.String] = []
-        self.undefines: List[CMake.String] = []
-        self.source_file_paths: List[CMake.String] = []
-        self.other_file_paths: List[CMake.String] = []
+        self.include_paths: list[CMake.String] = []
+        self.defines: list[CMake.String] = []
+        self.undefines: list[CMake.String] = []
+        self.source_file_paths: list[CMake.String] = []
+        self.other_file_paths: list[CMake.String] = []
 
     @classmethod
-    def _get(cls, lst: List[String], obj: str) -> String:
+    def _get(cls, lst: list[String], obj: str) -> String:
         """Get existing object from the list or append a new one to the end."""
         try:
             # noinspection PyTypeChecker
@@ -738,10 +729,10 @@ class CMake:
     @classmethod
     def _add_values(
         cls,
-        where: List[String],
-        values: Union[str, Iterable[str]],
-        languages: Union[Language, Collection[Language], None],
-        comment: Optional[str] = None,
+        where: list[String],
+        values: str | Iterable[str],
+        languages: Language | Collection[Language] | None,
+        comment: str | None = None,
     ) -> None:
         if isinstance(languages, Language):
             languages = [languages]
@@ -756,33 +747,33 @@ class CMake:
                 obj.languages.update(languages)
 
     @staticmethod
-    def _clean_paths(paths: Union[str, Iterable[str]]) -> List[str]:
+    def _clean_paths(paths: str | Iterable[str]) -> list[str]:
         if isinstance(paths, (str, Path)):
             paths = [paths]
         return [Path(p).as_posix() for p in map(os.path.normpath, paths)]
 
     def add_include_paths(
-        self, paths: Union[str, Iterable[str]], languages: Union[Language, Collection[Language]], comment: str = None
+        self, paths: str | Iterable[str], languages: Language | Collection[Language], comment: str = None
     ) -> None:
         self._add_values(self.include_paths, self._clean_paths(paths), languages, comment)
 
     def add_defines(
-        self, defines: Union[str, Iterable[str]], languages: Union[Language, Collection[Language]], comment: str = None
+        self, defines: str | Iterable[str], languages: Language | Collection[Language], comment: str = None
     ) -> None:
         self._add_values(self.defines, defines, languages, comment)
 
     def add_undefines(
         self,
-        undefines: Union[str, Iterable[str]],
-        languages: Union[Language, Collection[Language]],
+        undefines: str | Iterable[str],
+        languages: Language | Collection[Language],
         comment: str = None,
     ) -> None:
         self._add_values(self.undefines, undefines, languages, comment)
 
     def add_source_files(
         self,
-        paths: Union[None, str, Iterable[str]],
-        languages: Union[Language, Collection[Language], None],
+        paths: None | str | Iterable[str],
+        languages: Language | Collection[Language] | None,
         comment: str = None,
         include_in_build: bool = True,
     ) -> None:
@@ -792,10 +783,10 @@ class CMake:
             paths = ["# " + path for path in paths]
         self._add_values(self.source_file_paths if languages else self.other_file_paths, paths, languages, comment)
 
-    def add_other_files(self, paths: Union[str, Iterable[str]], comment: str = None) -> None:
+    def add_other_files(self, paths: str | Iterable[str], comment: str = None) -> None:
         self.add_source_files(paths, None, comment)
 
-    def check_common(self) -> Set[Language]:
+    def check_common(self) -> set[Language]:
         """
         Check which properties are common to all language configurations.
 
@@ -826,7 +817,7 @@ class CMake:
         ]
 
         # Set of the build properties
-        prop_sets: List[Tuple[str, str, List[CMake.String], str]] = [
+        prop_sets: list[tuple[str, str, list[CMake.String], str]] = [
             ("definitions", "DEFINES", self.defines, "-D"),
             ("un-defines", "UNDEFINES", self.undefines, ""),
             ("include directories", "INCLUDE_DIRS", self.include_paths, ""),
@@ -834,7 +825,7 @@ class CMake:
         ]
 
         # Set of the language configs per build property
-        sub_prop_sets: List[Tuple[str, str, Callable[[CMake.String], bool]]] = [
+        sub_prop_sets: list[tuple[str, str, Callable[[CMake.String], bool]]] = [
             ("Common", "COMMON", lambda prop: prop.common),
             *(
                 (

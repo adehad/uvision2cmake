@@ -4,9 +4,19 @@ import os
 import warnings
 from collections import defaultdict
 from dataclasses import dataclass
-from os import DirEntry
 from pathlib import Path
-from typing import List, Optional, Union, Iterable, Collection, Set, Tuple, Callable, Dict, Iterator
+from typing import (
+    Callable,
+    Collection,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 from lxml import etree
 
@@ -44,6 +54,7 @@ class FileType(enum.Enum):
 
 
 # region XML data structures for Project File
+
 
 @dataclass
 class Target:
@@ -85,6 +96,7 @@ class Target:
                 @enum.unique
                 class Type(enum.Enum):
                     """TODO: Real meaning unknown."""
+
                     TYPE0 = 0
                     TYPE1 = 1
 
@@ -138,7 +150,7 @@ class Target:
     @dataclass
     class Group:
         name: str
-        files: List['Target.File']
+        files: List["Target.File"]
 
     name: str
     toolset: Toolset
@@ -165,7 +177,7 @@ class RTE:
         url: str
         vendor: str
         version: str
-        target_infos: List['RTE.TargetInfo']
+        target_infos: List["RTE.TargetInfo"]
 
     @dataclass
     class Component:
@@ -174,8 +186,8 @@ class RTE:
         vendor: str
         version: str
         condition: str
-        package: 'RTE.Package'
-        target_infos: List['RTE.TargetInfo']
+        package: "RTE.Package"
+        target_infos: List["RTE.TargetInfo"]
 
     @dataclass
     class File:
@@ -193,9 +205,9 @@ class RTE:
         name: str
         version: str
         instance: str
-        component: 'RTE.Component'
-        package: 'RTE.Package'
-        target_infos: List['RTE.TargetInfo']
+        component: "RTE.Component"
+        package: "RTE.Package"
+        target_infos: List["RTE.TargetInfo"]
 
     packages: List[Package]
     components: List[Component]
@@ -205,6 +217,7 @@ class RTE:
 # endregion XML data structures for Project File
 
 # region XML data structures for Project Options file
+
 
 @dataclass
 class File:
@@ -254,6 +267,7 @@ class Group:
 
 # region XML parsing helper functions
 
+
 def text(element: etree.ElementBase, name: str, is_attribute: bool = False, nullable: bool = False) -> Optional[str]:
     if is_attribute:
         if nullable:
@@ -271,8 +285,9 @@ def text(element: etree.ElementBase, name: str, is_attribute: bool = False, null
     return value[0].text
 
 
-def strict_bool(element: etree.ElementBase, name: str, nullable: bool = False, *,
-                false_value: str = "0", true_value: str = "1") -> Optional[bool]:
+def strict_bool(
+    element: etree.ElementBase, name: str, nullable: bool = False, *, false_value: str = "0", true_value: str = "1"
+) -> Optional[bool]:
     value = text(element, name, nullable=nullable)
     if value == false_value:
         return False
@@ -309,7 +324,7 @@ class UVisionProject:
     # endregion Project Options
 
     @classmethod
-    def new(cls, project_file_path: str) -> 'UVisionProject':
+    def new(cls, project_file_path: str) -> "UVisionProject":
         fp_base = os.path.splitext(project_file_path)[0]
         project_file_path = fp_base + ".uvprojx"
         project_options_path = fp_base + ".uvoptx"
@@ -332,11 +347,11 @@ class UVisionProject:
                 name=text(target, "TargetName"),
                 toolset=Target.Toolset(
                     number=strict_hex(target, "ToolsetNumber"),
-                    name=text(target, "ToolsetName")
+                    name=text(target, "ToolsetName"),
                 ),
                 compiler=Target.Compiler(
                     cc=text(target, "pCCUsed", nullable=True),
-                    ac6=strict_bool(target, "uAC6")
+                    ac6=strict_bool(target, "uAC6"),
                 ),
                 options=next(
                     # There is always only one package, but using generator is clean and
@@ -350,15 +365,18 @@ class UVisionProject:
                                 pack_url=text(tco, "PackURL"),
                                 cpu=text(tco, "Cpu"),
                                 device_id=text(tco, "DeviceId"),
-                                register_file=text(tco, "RegisterFile")
-                            ) for tco in to.xpath("TargetCommonOption")
+                                register_file=text(tco, "RegisterFile"),
+                            )
+                            for tco in to.xpath("TargetCommonOption")
                         ),
                         properties=next(
                             Target.Options.Properties(
                                 use_cpp_compiler=strict_bool(tcp, "UseCPPCompiler"),
-                            ) for tcp in to.xpath("CommonProperty")
-                        )
-                    ) for to in target.xpath("TargetOption")
+                            )
+                            for tcp in to.xpath("CommonProperty")
+                        ),
+                    )
+                    for to in target.xpath("TargetOption")
                 ),
                 build=next(
                     Target.Build(
@@ -369,9 +387,10 @@ class UVisionProject:
                                     name=memory.tag,
                                     type=Target.Build.Misc.Memory.Type(int(text(memory, "Type"))),
                                     start=strict_hex(memory, "StartAddress"),
-                                    size=strict_hex(memory, "Size")
-                                ) for memory in to_taa.xpath("ArmAdsMisc/OnChipMemories/*")
-                            ]
+                                    size=strict_hex(memory, "Size"),
+                                )
+                                for memory in to_taa.xpath("ArmAdsMisc/OnChipMemories/*")
+                            ],
                         ),
                         c=next(
                             Target.Build.C(
@@ -379,24 +398,22 @@ class UVisionProject:
                                 strict=strict_bool(to_taa_c, "Strict"),
                                 c99=strict_bool(to_taa_c, "uC99"),
                                 gnu=strict_bool(to_taa_c, "uGnu"),
-                                misc=[
-                                    mc.strip() for mc in text(to_taa_c, "VariousControls/MiscControls").split(",")
-                                ],
-                                defines=[
-                                    mc.strip() for mc in text(to_taa_c, "VariousControls/Define").split(" ")
-                                ],
+                                misc=[mc.strip() for mc in text(to_taa_c, "VariousControls/MiscControls").split(",")],
+                                defines=[mc.strip() for mc in text(to_taa_c, "VariousControls/Define").split(" ")],
                                 undefines=[
                                     mc.strip() for mc in (text(to_taa_c, "VariousControls/Undefine") or "").split(" ")
                                 ],
                                 include_paths=[
                                     mc.strip() for mc in text(to_taa_c, "VariousControls/IncludePath").split(";")
-                                ]
-                            ) for to_taa_c in to_taa.xpath("Cads")
+                                ],
+                            )
+                            for to_taa_c in to_taa.xpath("Cads")
                         ),
                         asm=next(
                             Target.Build.Asm(
                                 misc=[
-                                    mc.strip() for mc in (text(to_taa_a, "VariousControls/MiscControls") or "").split(",")
+                                    mc.strip()
+                                    for mc in (text(to_taa_a, "VariousControls/MiscControls") or "").split(",")
                                 ],
                                 defines=[
                                     mc.strip() for mc in (text(to_taa_a, "VariousControls/Define") or "").split(" ")
@@ -405,21 +422,24 @@ class UVisionProject:
                                     mc.strip() for mc in (text(to_taa_a, "VariousControls/Undefine") or "").split(" ")
                                 ],
                                 include_paths=[
-                                    mc.strip() for mc in (text(to_taa_a, "VariousControls/IncludePath") or "").split(";")
-                                ]
-                            ) for to_taa_a in to_taa.xpath("Aads")
+                                    mc.strip()
+                                    for mc in (text(to_taa_a, "VariousControls/IncludePath") or "").split(";")
+                                ],
+                            )
+                            for to_taa_a in to_taa.xpath("Aads")
                         ),
                         ld=next(
                             Target.Build.Linker(
                                 text_address_range=strict_hex(to_taa_ld, "TextAddressRange"),
                                 data_address_range=strict_hex(to_taa_ld, "DataAddressRange"),
                                 misc=[
-                                    mc.strip() for mc in
-                                    text(to_taa_ld, "Misc").split(",")  # TODO: Delimiter unknown
-                                ]
-                            ) for to_taa_ld in to_taa.xpath("LDads")
-                        )
-                    ) for to_taa in target.xpath("TargetOption/TargetArmAds")
+                                    mc.strip() for mc in text(to_taa_ld, "Misc").split(",")  # TODO: Delimiter unknown
+                                ],
+                            )
+                            for to_taa_ld in to_taa.xpath("LDads")
+                        ),
+                    )
+                    for to_taa in target.xpath("TargetOption/TargetArmAds")
                 ),
                 groups=[
                     Target.Group(
@@ -429,15 +449,20 @@ class UVisionProject:
                                 name=text(file, "FileName"),
                                 type=FileType(int(text(file, "FileType"))),
                                 path=text(file, "FilePath"),
-                                include_in_build=strict_bool(file, "FileOption/CommonProperty/IncludeInBuild",
-                                                             nullable=True),
-                                always_build=strict_bool(file, "FileOption/CommonProperty/AlwaysBuild",
-                                                         nullable=True, true_value="2")
-                            ) for file in group.xpath("Files/File")
-                        ]
-                    ) for group in target.xpath("Groups/Group")
-                ]
-            ) for target in xproj.xpath("Targets/Target")
+                                include_in_build=strict_bool(
+                                    file, "FileOption/CommonProperty/IncludeInBuild", nullable=True
+                                ),
+                                always_build=strict_bool(
+                                    file, "FileOption/CommonProperty/AlwaysBuild", nullable=True, true_value="2"
+                                ),
+                            )
+                            for file in group.xpath("Files/File")
+                        ],
+                    )
+                    for group in target.xpath("Groups/Group")
+                ],
+            )
+            for target in xproj.xpath("Targets/Target")
         ]
 
         # region RTE
@@ -453,11 +478,15 @@ class UVisionProject:
                         RTE.TargetInfo(
                             name=text(ti, "name", True),
                             # Using generator and list only for local variable
-                            version_match_mode=next(RTE.TargetInfo.VersionMatchMode(vmm) if vmm else None
-                                                    for vmm in [text(ti, "versionMatchMode", True, True)])
-                        ) for ti in package.xpath("targetInfos/targetInfo")
-                    ]
-                ) for package in xproj.xpath("RTE/packages/package")
+                            version_match_mode=next(
+                                RTE.TargetInfo.VersionMatchMode(vmm) if vmm else None
+                                for vmm in [text(ti, "versionMatchMode", True, True)]
+                            ),
+                        )
+                        for ti in package.xpath("targetInfos/targetInfo")
+                    ],
+                )
+                for package in xproj.xpath("RTE/packages/package")
             ],
             components=[
                 RTE.Component(
@@ -476,18 +505,21 @@ class UVisionProject:
                             url=text(package, "url", True),
                             vendor=text(package, "vendor", True),
                             version=text(package, "version", True),
-                            target_infos=None
-                        ) for package in component.xpath("package")
+                            target_infos=None,
+                        )
+                        for package in component.xpath("package")
                     ),
                     target_infos=[
                         RTE.TargetInfo(
                             name=text(ti, "name", True),
                             # TODO: Handle nullable
                             # RTE.TargetInfo.VersionMatchMode(text(ti, "versionMatchMode", True, True))
-                            version_match_mode=None
-                        ) for ti in component.xpath("targetInfos/targetInfo")
-                    ]
-                ) for component in xproj.xpath("RTE/components/component")
+                            version_match_mode=None,
+                        )
+                        for ti in component.xpath("targetInfos/targetInfo")
+                    ],
+                )
+                for component in xproj.xpath("RTE/components/component")
             ],
             files=[
                 RTE.File(
@@ -505,13 +537,15 @@ class UVisionProject:
                             version=text(component, "Cversion", True),
                             condition=text(component, "condition", True),
                             package=None,
-                            target_infos=None
-                        ) for component in file.xpath("component")
+                            target_infos=None,
+                        )
+                        for component in file.xpath("component")
                     ),
                     package=None,  # TODO
                     target_infos=None,  # TODO
-                ) for file in xproj.xpath("RTE/files/file")
-            ]
+                )
+                for file in xproj.xpath("RTE/files/file")
+            ],
         )
         # TODO: Connect actual references of the rte.packages and rte.packages.target_infos
         for component in rte.components:
@@ -549,29 +583,33 @@ class UVisionProject:
 
                 xproj_file = next(f for f in xproj_group.files if (f.type == file_type and f.name == file_name))
 
-                files.append(File(
-                    group_number=int(text(file, "GroupNumber")),
-                    number=int(text(file, "FileNumber")),
-                    type=file_type,
-                    expanded=strict_bool(file, "tvExp"),
-                    include_in_build=xproj_file.include_in_build,
-                    always_build=xproj_file.always_build,
-                    tv_exp_opt_dlg=strict_bool(file, "tvExpOptDlg"),
-                    dave2=strict_bool(file, "bDave2"),
-                    path=text(file, "PathWithFileName"),
-                    filename=file_name,
-                    rte_flag=strict_bool(file, "RteFlg"),
-                    shared=strict_bool(file, "bShared")
-                ))
+                files.append(
+                    File(
+                        group_number=int(text(file, "GroupNumber")),
+                        number=int(text(file, "FileNumber")),
+                        type=file_type,
+                        expanded=strict_bool(file, "tvExp"),
+                        include_in_build=xproj_file.include_in_build,
+                        always_build=xproj_file.always_build,
+                        tv_exp_opt_dlg=strict_bool(file, "tvExpOptDlg"),
+                        dave2=strict_bool(file, "bDave2"),
+                        path=text(file, "PathWithFileName"),
+                        filename=file_name,
+                        rte_flag=strict_bool(file, "RteFlg"),
+                        shared=strict_bool(file, "bShared"),
+                    )
+                )
 
-            groups.append(Group(
-                name=group_name,
-                expanded=strict_bool(group, "tvExp"),
-                tv_exp_opt_dlg=strict_bool(group, "tvExpOptDlg"),
-                cb_sel=strict_bool(group, "cbSel"),
-                rte_flag=strict_bool(group, "RteFlg"),
-                files=files
-            ))
+            groups.append(
+                Group(
+                    name=group_name,
+                    expanded=strict_bool(group, "tvExp"),
+                    tv_exp_opt_dlg=strict_bool(group, "tvExpOptDlg"),
+                    cb_sel=strict_bool(group, "cbSel"),
+                    rte_flag=strict_bool(group, "RteFlg"),
+                    files=files,
+                )
+            )
 
         # There is no more *currently relevant* data in the Project Options file.
 
@@ -584,8 +622,10 @@ class UVisionProject:
             group_number = 1
             for group_number, group in enumerate(groups, 1):
                 if group.files and group.files[0].group_number != group_number:
-                    warnings.warn(f"Inconsistent group number {group.files[0].group_number} for group {group.name}"
-                                  f" (expected to be {group_number})")
+                    warnings.warn(
+                        f"Inconsistent group number {group.files[0].group_number} for group {group.name}"
+                        f" (expected to be {group_number})"
+                    )
                 if group.rte_flag and group.name.strip(":") == file.component.class_:
                     break
             filename = os.path.basename(file.instance)
@@ -601,26 +641,28 @@ class UVisionProject:
             else:
                 warnings.warn(f"Unknown RTE file type '{file.instance}': {file}")
                 continue
-            group.files.append(File(
-                group_number=group_number,
-                number=max(f.number for g in groups for f in g.files) + 1,
-                type=file_type,
-                expanded=False,
-                include_in_build=True,  # TODO: This information is available for RTE files
-                always_build=None,
-                tv_exp_opt_dlg=False,  # TODO
-                dave2=False,  # TODO
-                path=file.instance,
-                filename=os.path.basename(file.instance),
-                rte_flag=True,
-                shared=False
-            ))
+            group.files.append(
+                File(
+                    group_number=group_number,
+                    number=max(f.number for g in groups for f in g.files) + 1,
+                    type=file_type,
+                    expanded=False,
+                    include_in_build=True,  # TODO: This information is available for RTE files
+                    always_build=None,
+                    tv_exp_opt_dlg=False,  # TODO
+                    dave2=False,  # TODO
+                    path=file.instance,
+                    filename=os.path.basename(file.instance),
+                    rte_flag=True,
+                    shared=False,
+                )
+            )
 
         return cls(
             project_file_path=project_file_path,
             project_options_path=project_options_path,
             targets=targets,
-            groups=groups
+            groups=groups,
         )
 
     def source_files(self) -> Iterator[Tuple[File, Optional[Language], Optional[str]]]:
@@ -667,7 +709,7 @@ class CMake:
         comment: Optional[str] = None
         """Comment which will be added to the line before"""
 
-        def __eq__(self, o: 'CMake.String') -> bool:
+        def __eq__(self, o: "CMake.String") -> bool:
             if isinstance(o, type(self)):
                 return self.value == o.value
             elif isinstance(o, str):
@@ -694,8 +736,13 @@ class CMake:
         return itm
 
     @classmethod
-    def _add_values(cls, where: List[String], values: Union[str, Iterable[str]],
-                    languages: Union[Language, Collection[Language], None], comment: Optional[str] = None) -> None:
+    def _add_values(
+        cls,
+        where: List[String],
+        values: Union[str, Iterable[str]],
+        languages: Union[Language, Collection[Language], None],
+        comment: Optional[str] = None,
+    ) -> None:
         if isinstance(languages, Language):
             languages = [languages]
 
@@ -714,21 +761,31 @@ class CMake:
             paths = [paths]
         return [Path(p).as_posix() for p in map(os.path.normpath, paths)]
 
-    def add_include_paths(self, paths: Union[str, Iterable[str]], languages: Union[Language, Collection[Language]],
-                          comment: str = None) -> None:
+    def add_include_paths(
+        self, paths: Union[str, Iterable[str]], languages: Union[Language, Collection[Language]], comment: str = None
+    ) -> None:
         self._add_values(self.include_paths, self._clean_paths(paths), languages, comment)
 
-    def add_defines(self, defines: Union[str, Iterable[str]], languages: Union[Language, Collection[Language]],
-                    comment: str = None) -> None:
+    def add_defines(
+        self, defines: Union[str, Iterable[str]], languages: Union[Language, Collection[Language]], comment: str = None
+    ) -> None:
         self._add_values(self.defines, defines, languages, comment)
 
-    def add_undefines(self, undefines: Union[str, Iterable[str]], languages: Union[Language, Collection[Language]],
-                      comment: str = None) -> None:
+    def add_undefines(
+        self,
+        undefines: Union[str, Iterable[str]],
+        languages: Union[Language, Collection[Language]],
+        comment: str = None,
+    ) -> None:
         self._add_values(self.undefines, undefines, languages, comment)
 
-    def add_source_files(self, paths: Union[None, str, Iterable[str]],
-                         languages: Union[Language, Collection[Language], None],
-                         comment: str = None, include_in_build: bool = True) -> None:
+    def add_source_files(
+        self,
+        paths: Union[None, str, Iterable[str]],
+        languages: Union[Language, Collection[Language], None],
+        comment: str = None,
+        include_in_build: bool = True,
+    ) -> None:
         paths = self._clean_paths(paths)
         # If file is not included in the build, comment it
         if include_in_build is False:
@@ -747,19 +804,21 @@ class CMake:
         all_props = (self.include_paths, self.defines, self.undefines, self.source_file_paths)
 
         # Get all of the defined languages used
+        # fmt: off
         languages = {lang
                      for props in all_props
                      for prop in props
                      for lang in prop.languages}
+        # fmt: on
 
         for props in all_props:
             for prop in props:
-                prop.common = (prop.languages == languages)
+                prop.common = prop.languages == languages
 
         return languages
 
     def __str__(self) -> str:
-        languages = sorted(self.check_common(), key=operator.attrgetter('value'))
+        languages = sorted(self.check_common(), key=operator.attrgetter("value"))
 
         ret_str = [
             "# Made with CMake <> uVision project file synchronizer"
@@ -777,21 +836,31 @@ class CMake:
         # Set of the language configs per build property
         sub_prop_sets: List[Tuple[str, str, Callable[[CMake.String], bool]]] = [
             ("Common", "COMMON", lambda prop: prop.common),
-            *((lang.value + " specific", lang.name,
-               lambda prop, lang_=lang: (not prop.common) and (lang_ in prop.languages))
-              for lang in languages)
+            *(
+                (
+                    lang.value + " specific",
+                    lang.name,
+                    lambda prop, lang_=lang: (not prop.common) and (lang_ in prop.languages),
+                )
+                for lang in languages
+            ),
         ]
 
-        def _add_section_files(comment: str, var_name: str, value_iterator: Iterable[CMake.String],
-                               value_prefix: str = "") -> str:
-            s = (f"# {comment}\n"
-                 f"set({var_name}")
-            value_str = ''
+        def _add_section_files(
+            comment: str, var_name: str, value_iterator: Iterable[CMake.String], value_prefix: str = ""
+        ) -> str:
+            s = "\n".join(
+                [
+                    f"# {comment}",
+                    f"set({var_name}",
+                ]
+            )
+            value_str = ""
             for value in value_iterator:
                 if value.comment is not None:
                     value_str += f"\n\t# {value.comment}"
                 value_str += f"\n\t{value_prefix}{value.value}"
-            if len(value_str) is not 0:
+            if len(value_str) != 0:
                 return s + value_str + "\n)"
             else:
                 return None
@@ -803,7 +872,7 @@ class CMake:
                     comment=f"{prop_set_comment} {section_comment}",
                     var_name=f"{section_var_prefix}_{var_suffix}",
                     value_iterator=filter(filter_fun, section_props),
-                    value_prefix=val_prefix
+                    value_prefix=val_prefix,
                 )
                 if section_files is not None:
                     ss_str.append(section_files)
@@ -812,11 +881,9 @@ class CMake:
         other_files = _add_section_files(
             comment="Other files",
             var_name="OTHER_FILES",
-            value_iterator=self.other_file_paths
+            value_iterator=self.other_file_paths,
         )
         if other_files is not None:
             ret_str.append(other_files)
 
         return "\n\n\n".join(ret_str)
-
-

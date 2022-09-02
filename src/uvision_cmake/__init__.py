@@ -12,12 +12,19 @@ Options:
                 If not provided then the current working directory is chosen
                 as a project directory.
 """
+from __future__ import annotations
+
 import logging
 import os
+from typing import TYPE_CHECKING
 
 from docopt import docopt
 
 from .parsers import CMake, Language, UVisionProject
+
+if TYPE_CHECKING:
+    from os import DirEntry
+    from typing import Iterator
 
 logging.basicConfig(level=logging.INFO)
 _LOG = logging.getLogger(__name__)

@@ -1,0 +1,70 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "uvision-cmake"
+description = 'CMake ⇄ µVision Synchronizer'
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+  { name = "Bojan Potočnik", email = "info@bojanpotocnik.com" },
+  { name = "adehad", email = "" },
+]
+dependencies = ["docopt", "lxml"]
+dynamic = ["version"]
+
+[project.urls]
+Source = "https://github.com/adehad/uvision2cmake/"
+
+[project.scripts]
+uvision2cmake = "uvision_cmake:main"
+
+[project.optional-dependencies]
+docs = [
+  "furo",              # theme
+  "myst-parser",       # .md parsing
+  "sphinx-copybutton", # add a copy button to code blocks
+  "sphinx",
+]
+test = [
+  "pytest",
+  "pytest-cov", # coverage
+  "tox",
+]
+
+# Hatch Configuration
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/_version.py" # Do not commit to source
+
+[tool.hatch.build]
+sources = ["src"]
+
+[tool.hatch.build.targets.sdist]
+[tool.hatch.build.targets.wheel]
+
+# Tool Configurations
+[tool.isort]
+profile = "black"
+src_paths = ["src", "tests"]
+
+[tool.black]
+target-version = ["py38"]
+line-length = 120
+
+[tool.mypy]
+warn_unused_configs = true
+namespace_packages = true
+strict_optional = false       # Set to True if you want to include typehints to all functions
+ignore_missing_imports = true
+show_error_codes = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = '''--tb=long -rxX --showlocals -v --color=yes
+             --junitxml=build/test-results.xml
+             --cov-report=xml:build/coverage.xml --cov-report=html:build/cov_html --cov=cookiecutter_python'''
+testpaths = ["tests"]

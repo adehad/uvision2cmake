@@ -1,0 +1,5 @@
+# No pyproject support: https://github.com/PyCQA/flake8/issues/234
+# https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html#line-length
+[flake8]
+max-line-length = 120
+extend-ignore = E203

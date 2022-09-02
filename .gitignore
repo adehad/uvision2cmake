@@ -1,3 +1,6 @@
+# Version
+src/_version.py
+
 # PyCharm
 .idea/deployment.xml
 .idea/misc.xml
@@ -8,6 +11,10 @@
 
 # Python
 __pycache__
+*.py[cdo]
 
 # VSCode
 .vscode
+
+# tox
+.tox

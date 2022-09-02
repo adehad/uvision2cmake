@@ -22,3 +22,13 @@ If something relevant is changed in the CMake file, uvprojx/uvoptx files shall a
 the same is true in both directions.
 
 As such "synchronization" is time consuming and error-prone, the goal of this tool is to automate the process.
+
+
+## Usage
+
+Install [pipx](https://pypa.github.io/pipx/installation/) and then follow
+the [install from source control method](https://pypa.github.io/pipx/#running-from-source-control)
+
+```
+pipx run --spec git+https://github.com/adehad/uvision2cmake.git uvision2cmake
+```

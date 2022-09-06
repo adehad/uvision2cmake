@@ -75,7 +75,7 @@ def main() -> None:
         os.path.dirname(uvp.project_file_path), os.path.splitext(os.path.basename(uvp.project_file_path))[0] + ".cmake"
     )
     with open(fp_proj_cmake, "w") as f:
-        _LOG.info(cmake, file=f)
+        f.write(str(cmake))
     _LOG.info(f"Generated CMake file '{fp_proj_cmake}'")
 
 
